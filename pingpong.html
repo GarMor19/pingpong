@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Ping Pong Arcade</title>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      display: block;
+      margin: auto;
+      background: #111;
+      border: 2px solid #fff;
+    }
+    #victory {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 48px;
+      font-weight: bold;
+      z-index: 10;
+      display: none;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="victory"></div>
+  <canvas id="pong" width="800" height="500"></canvas>
+  <script>
+    const canvas = document.getElementById("pong");
+    const ctx = canvas.getContext("2d");
+    const victoryScreen = document.getElementById("victory");
+
+    const paddleWidth = 10, paddleHeight = 100, ballSize = 10;
+    let player = { x: 0, y: canvas.height / 2 - paddleHeight / 2, score: 0, color: "#0f0" };
+    let ai = { x: canvas.width - paddleWidth, y: canvas.height / 2 - paddleHeight / 2, score: 0, color: "#f00" };
+    let ball = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      vx: 5 * (Math.random() > 0.5 ? 1 : -1),
+      vy: 5 * (Math.random() > 0.5 ? 1 : -1)
+    };
+
+    let aiError = 0.6; // dificultad fácil
+    let gameOver = false;
+
+    function drawRect(x, y, w, h, color) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, w, h);
+    }
+
+    function drawCircle(x, y, r, color) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawText(text, x, y, color) {
+      ctx.fillStyle = color;
+      ctx.font = "32px Arial";
+      ctx.fillText(text, x, y);
+    }
+
+    function resetBall() {
+      ball.x = canvas.width / 2;
+      ball.y = canvas.height / 2;
+      ball.vx *= -1;
+      ball.vy = 5 * (Math.random() > 0.5 ? 1 : -1);
+    }
+
+    function update() {
+      if (gameOver) return;
+
+      ball.x += ball.vx;
+      ball.y += ball.vy;
+
+      if (ball.y < 0 || ball.y > canvas.height) ball.vy *= -1;
+
+      ai.y += ((ball.y - (ai.y + paddleHeight / 2))) * aiError;
+      ai.y = Math.max(Math.min(ai.y, canvas.height - paddleHeight), 0);
+
+      if (ball.x < player.x + paddleWidth &&
+          ball.y > player.y &&
+          ball.y < player.y + paddleHeight) {
+        ball.vx *= -1;
+      }
+
+      if (ball.x > ai.x - ballSize &&
+          ball.y > ai.y &&
+          ball.y < ai.y + paddleHeight) {
+        ball.vx *= -1;
+      }
+
+      if (ball.x < 0) {
+        ai.score++;
+        resetBall();
+      }
+
+      if (ball.x > canvas.width) {
+        player.score++;
+        resetBall();
+      }
+
+      if (player.score >= 10) {
+        gameOver = true;
+        victoryScreen.style.color = player.color;
+        victoryScreen.innerHTML = "¡Has ganado! 🏆";
+        victoryScreen.style.display = "flex";
+      }
+
+      if (ai.score >= 10) {
+        gameOver = true;
+        victoryScreen.style.color = ai.color;
+        victoryScreen.innerHTML = "¡La IA ha ganado! 🤖";
+        victoryScreen.style.display = "flex";
+      }
+    }
+
+    function draw() {
+      drawRect(0, 0, canvas.width, canvas.height, "#000");
+      drawRect(player.x, player.y, paddleWidth, paddleHeight, player.color);
+      drawRect(ai.x, ai.y, paddleWidth, paddleHeight, ai.color);
+      drawCircle(ball.x, ball.y, ballSize, "#fff");
+      drawText(player.score, canvas.width / 4, 50, player.color);
+      drawText(ai.score, 3 * canvas.width / 4, 50, ai.color);
+    }
+
+    function game() {
+      update();
+      draw();
+      requestAnimationFrame(game);
+    }
+
+    canvas.addEventListener("mousemove", e => {
+      let rect = canvas.getBoundingClientRect();
+      player.y = e.clientY - rect.top - paddleHeight / 2;
+    });
+
+    game();
+  </script>
+</body>
+</html>
